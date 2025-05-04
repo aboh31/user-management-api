@@ -1,3 +1,5 @@
+create database postgres;
+
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     uuid varchar(100) not null,
