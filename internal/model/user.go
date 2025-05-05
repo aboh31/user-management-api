@@ -12,7 +12,7 @@ type User struct {
 }
 
 type UserResponse struct {
-	Id        string `json:"id"` //ini buat uuid
+	Id        string `json:"id"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
 	CreatedAt string `json:"created_at"`

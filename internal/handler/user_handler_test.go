@@ -235,17 +235,78 @@ func TestGetUsersSuccess(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	// Validate response body
-	var resp []map[string]interface{}
+	// Parse response JSON to map["users"] -> []model.UserResponse
+	var response map[string][]model.UserResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+
+	users, ok := response["users"]
+	assert.True(t, ok)
+	assert.Len(t, users, 2)
+
+	assert.Equal(t, "uuid-1", users[0].Id)
+	assert.Equal(t, "user1", users[0].Username)
+	assert.Equal(t, "user1@example.com", users[0].Email)
+
+	assert.Equal(t, "uuid-2", users[1].Id)
+	assert.Equal(t, "user2", users[1].Username)
+	assert.Equal(t, "user2@example.com", users[1].Email)
+}
+
+func TestLoginInvalidJSON(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUsecase := new(MockUserUsecase)
+	handler := NewUserHandler(mockUsecase)
+
+	router := gin.Default()
+	router.POST("/login", handler.Login)
+
+	body := []byte(`{invalid_json}`)
+	req, _ := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestRegisterInvalidJSON(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUsecase := new(MockUserUsecase)
+	handler := NewUserHandler(mockUsecase)
+
+	router := gin.Default()
+	router.POST("/register", handler.Register)
+
+	body := []byte(`{invalid_json}`)
+	req, _ := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetUsersError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockUsecase := new(MockUserUsecase)
+	handler := NewUserHandler(mockUsecase)
+
+	router := gin.Default()
+	router.GET("/users", handler.Users)
+
+	mockUsecase.On("GetUsers").Return((*[]model.UserResponse)(nil), errors.New("db error"))
+
+	req, _ := http.NewRequest(http.MethodGet, "/users", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	var resp map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	assert.NoError(t, err)
-	assert.Len(t, resp, 2)
-
-	assert.Equal(t, "uuid-1", resp[0]["id"])
-	assert.Equal(t, "user1", resp[0]["username"])
-	assert.Equal(t, "user1@example.com", resp[0]["email"])
-
-	assert.Equal(t, "uuid-2", resp[1]["id"])
-	assert.Equal(t, "user2", resp[1]["username"])
-	assert.Equal(t, "user2@example.com", resp[1]["email"])
+	assert.Equal(t, "db error", resp["error"])
 }

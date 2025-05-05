@@ -79,5 +79,8 @@ func (h *UserHandler) Users(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, users)
+	response := make(map[string]any)
+	response["users"] = users
+
+	c.JSON(http.StatusOK, response)
 }
