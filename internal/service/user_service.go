@@ -59,6 +59,7 @@ func (u *userUsecase) GetProfile(id uint) (*model.User, error) {
 }
 
 func (u *userUsecase) GetUsers() (*[]model.UserResponse, error) {
+	//getusers
 	data, err := u.repo.FindAll()
 	response := []model.UserResponse{}
 	for _, user := range *data {
